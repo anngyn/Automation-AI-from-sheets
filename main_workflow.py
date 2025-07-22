@@ -1,52 +1,47 @@
 import os
 import time
-import uuid # For unique task IDs
-from dotenv import load_dotenv # Import để tải biến môi trường từ .env
+import uuid
+from dotenv import load_dotenv
 
-# Tải biến môi trường từ file .env. RẤT QUAN TRỌNG: Phải đặt ở đầu file
+# Tải biến môi trường từ file .env
 load_dotenv()
 
 # Import handlers (đảm bảo các file này cũng có load_dotenv() ở đầu)
 from google_sheets_handler import read_data_from_sheet
 from ai_model_generator import generate_asset
-from google_drive_handler import upload_file_to_drive, create_folder_with_service_account
+from google_drive_handler import upload_file_to_drive
 from notification_handler import send_email_notification, send_slack_notification
 from database_logger import log_task_status, init_db
 from report_generator import generate_daily_report
-
 
 # Initialize database
 init_db()
 
 # Configuration variables
 SPREADSHEET_ID = os.getenv("GOOGLE_SHEET_ID")
-SHEET_RANGE = 'Sheet1!A:Z' # Điều chỉnh dựa trên cấu trúc sheet của bạn
+SHEET_RANGE = 'Sheet1!A:Z'  # Điều chỉnh dựa trên cấu trúc sheet của bạn
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")
-
 DEFAULT_DRIVE_FOLDER_NAME = "My_AI_Generated_Assets"
 
 # --- Khối logic khởi tạo effective_drive_folder_id (Global) ---
-# Biến này sẽ lưu trữ ID thư mục Drive thực tế để sử dụng
 effective_drive_folder_id = os.getenv("GOOGLE_DRIVE_FOLDER_ID")
 
-
-# Kiểm tra chặt chẽ: Nếu không có ID, dừng chương trình ngay lập tức.
+# Kiểm tra ID thư mục Drive
 if not effective_drive_folder_id:
-    print("LỖI NGHIÊM TRỌNG: Biến GOOGLE_DRIVE_FOLDER_ID không được thiết lập trong file .env.")
-    print("Vui lòng cung cấp ID của một thư mục đã được chia sẻ quyền 'Người chỉnh sửa' cho Tài khoản Dịch vụ.")
-    # Gửi thông báo lỗi và thoát
+    print("CRITICAL ERROR: GOOGLE_DRIVE_FOLDER_ID is not set in the .env file.")
+    print("Please provide the ID of a folder shared with 'Editor' permissions to the Service Account.")
+    # Send error notification and exit
     send_slack_notification("❌ Automation workflow failed: GOOGLE_DRIVE_FOLDER_ID is not set in .env file.")
-    exit() # Dừng toàn bộ chương trình
+    exit()  # Stop the entire process
 
-print(f"Sử dụng Drive Folder ID đã cấu hình từ .env: {effective_drive_folder_id}")
-
+print(f"Using Drive Folder ID configured from .env: {effective_drive_folder_id}")
 
 def run_automation_workflow():
     print("Starting automation workflow...")
 
     # Kiểm tra xem effective_drive_folder_id có hợp lệ không trước khi bắt đầu
     if not effective_drive_folder_id:
-        print("Lỗi: Không có ID thư mục Drive hợp lệ để lưu trữ tài sản. Dừng workflow.")
+        print("Error: No valid Drive folder ID to store assets. Stopping workflow.")
         send_slack_notification("❌ Automation workflow failed: No valid Drive folder ID for asset storage.")
         return 
 
@@ -56,17 +51,13 @@ def run_automation_workflow():
         print("No tasks found in Google Sheet.")
         send_slack_notification("Automation workflow completed: No tasks found in Google Sheet.")
         return
-    print("\n" + "="*50)
-    print(f"CHUẨN BỊ BẮT ĐẦU VÒNG LẶP XỬ LÝ TASK")
-    print(f"--> Sẽ sử dụng Folder ID sau để tải tệp lên: '{effective_drive_folder_id}'")
-    print("="*50 + "\n")
+    
     for index, row in df_tasks.iterrows():
         task_id = str(uuid.uuid4())
         description = row.get('Description', '') 
+        print(f"Processing description: '{description}'")  # Log actual description being processed
         desired_output_format = row.get('Desired Output Format', '').upper()
-        model_specification = row.get('Model Specification (OpenAI/Claude)', '').lower() 
-
-        print(f"\nProcessing Task ID: {task_id}, Description: {description}")
+        model_specification = row.get('Model Specification (OpenAI/Claude)', '').lower()
 
         asset_content = None
         asset_url = None
@@ -89,7 +80,7 @@ def run_automation_workflow():
                 elif desired_output_format == "MP3":
                     mime_type = "audio/mpeg"
 
-                print(f"DEBUG: Đang cố gắng tải file lên Drive Folder ID: {effective_drive_folder_id}")
+                print(f"Attempting to upload file to Drive Folder ID: {effective_drive_folder_id}")
                 asset_url = upload_file_to_drive(
                     temp_file_path,
                     f"{description.replace(' ', '_')}_{task_id}.{file_extension}",
@@ -123,5 +114,6 @@ def run_automation_workflow():
 if __name__ == "__main__":
     run_automation_workflow()
 
+    # Tạo báo cáo hàng ngày
     print("\nGenerating daily report...")
     generate_daily_report(ADMIN_EMAIL)

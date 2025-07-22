@@ -1,9 +1,10 @@
 import requests
 import os
 from dotenv import load_dotenv
-from google.cloud import texttospeech_v1 as texttospeech
+# from google.cloud import texttospeech_v1 as texttospeech # Dòng này import client
+# from google.cloud.texttospeech_v1 import types
+from google.cloud import texttospeech
 from google.oauth2 import service_account
-
 # Tải các biến môi trường từ file .env
 load_dotenv()
 
@@ -18,12 +19,13 @@ tts_client = None
 if GOOGLE_SERVICE_ACCOUNT_FILE and os.path.exists(GOOGLE_SERVICE_ACCOUNT_FILE):
     try:
         credentials = service_account.Credentials.from_service_account_file(GOOGLE_SERVICE_ACCOUNT_FILE)
+        # Khởi tạo client dùng TextToSpeechClient
         tts_client = texttospeech.TextToSpeechClient(credentials=credentials)
-        print("✅ Khởi tạo Google Cloud Text-to-Speech client thành công.")
+        print("Google Cloud Text-to-Speech client initialized.")
     except Exception as e:
-        print(f"Lỗi khi khởi tạo Google Cloud TTS client: {e}")
+        print(f"Error initializing Google Cloud TTS client: {e}")
 else:
-    print("⚠️ Cảnh báo: Biến môi trường GOOGLE_SERVICE_ACCOUNT_FILE_PATH chưa được đặt hoặc không tìm thấy tệp. Chức năng Google Cloud TTS sẽ không hoạt động.")
+    print("Warning: GOOGLE_SERVICE_ACCOUNT_FILE_PATH not set or file not found. Google Cloud TTS functions may not work.")
 
 def generate_image_with_huggingface(description):
     """
@@ -50,30 +52,37 @@ def generate_image_with_huggingface(description):
 
 def generate_audio_with_google_cloud_tts(description):
     """
-    Tạo âm thanh (MP3) bằng Google Cloud Text-to-Speech.
+    Generates audio (MP3) using Google Cloud Text-to-Speech API.
     """
     if not tts_client:
-        print("Lỗi: Google Cloud TTS client chưa được khởi tạo.")
+        print("Google Cloud TTS client not initialized. Cannot generate audio.")
+        return None
+    if not description.strip():
+        print("Description for audio generation is empty. Skipping.")
         return None
 
+    # Cấu hình đầu vào văn bản
     synthesis_input = texttospeech.SynthesisInput(text=description)
+
+    # Cấu hình giọng nói
     voice = texttospeech.VoiceSelectionParams(
         language_code="en-US",
         name="en-US-Standard-C",
         ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL,
     )
+
+    # Cấu hình định dạng âm thanh
     audio_config = texttospeech.AudioConfig(
-        audio_encoding=texttospeech.AudioEncoding.MP3
+        audio_encoding=texttospeech.AudioEncoding.MP3,
     )
-    
-    print(f"Đang gọi Google Cloud TTS để tạo âm thanh cho: {description}")
+    print(f"Calling Google Cloud TTS for audio: {description}")
     try:
         response = tts_client.synthesize_speech(
             request={"input": synthesis_input, "voice": voice, "audio_config": audio_config}
         )
-        return response.audio_content
+        return response.audio_content  # Trả về nội dung nhị phân của file MP3
     except Exception as e:
-        print(f"Lỗi khi gọi Google Cloud TTS: {e}")
+        print(f"Error calling Google Cloud TTS: {e}")
         return None
 
 # --- Hàm chính điều hướng ---

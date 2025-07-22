@@ -11,22 +11,22 @@ SCOPES = ['https://www.googleapis.com/auth/drive']
 SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE_PATH")
 
 def get_drive_service():
-    print(f"[DEBUG] Đang xác thực với file: '{SERVICE_ACCOUNT_FILE}'") 
+    print(f"[INFO] Authenticating with file: '{SERVICE_ACCOUNT_FILE}'") 
     
     if not SERVICE_ACCOUNT_FILE or not os.path.exists(SERVICE_ACCOUNT_FILE):
-        raise FileNotFoundError(f"Lỗi: Không tìm thấy tệp credentials tại '{SERVICE_ACCOUNT_FILE}'. Vui lòng kiểm tra biến GOOGLE_SERVICE_ACCOUNT_FILE_PATH trong .env")
+        raise FileNotFoundError(f"Error: Credential file not found at '{SERVICE_ACCOUNT_FILE}'. Please check GOOGLE_SERVICE_ACCOUNT_FILE_PATH in .env")
 
     try:
         creds = service_account.Credentials.from_service_account_file(
             SERVICE_ACCOUNT_FILE, scopes=SCOPES)
         service = build('drive', 'v3', credentials=creds)
-        print("[DEBUG] Xác thực và tạo service thành công.") 
+        print("[INFO] Authentication and service creation successful.") 
         return service
     except Exception as e:
-        print(f"[DEBUG] Lỗi khi xác thực: {e}") 
+        print(f"[ERROR] Authentication failed: {e}") 
 
 def upload_file_to_drive(file_path, file_name, mime_type, folder_id):
-    print(f"[DEBUG] Bắt đầu tải tệp '{file_name}' lên thư mục '{folder_id}'.") 
+    print(f"[INFO] Starting to upload file '{file_name}' to folder '{folder_id}'.") 
     
     service = get_drive_service()
     
@@ -44,15 +44,15 @@ def upload_file_to_drive(file_path, file_name, mime_type, folder_id):
             supportsAllDrives=True  #
         ).execute()
         
-        print(f"[DEBUG] Tải tệp thành công. URL: {file.get('webContentLink')}")
+        print(f"[INFO] File uploaded successfully. URL: {file.get('webContentLink')}")
         return file.get('webContentLink')
     except HttpError as error:
-        print(f"[DEBUG] *** API Google Drive báo lỗi HttpError: {error} ***")
+        print(f"[ERROR] *** Google Drive API reported HttpError: {error} ***")
         raise error
         
 def create_folder_with_service_account(folder_name):
-    """Tạo thư mục do Service Account sở hữu (Không khuyến khích sử dụng)."""
-    print(f"[CẢNH BÁO] Đang tạo thư mục '{folder_name}' do Tài khoản Dịch vụ sở hữu. Thư mục này sẽ không thể chứa tệp.")
+    """Create a folder owned by the Service Account (Not recommended)."""
+    print(f"[WARNING] Creating folder '{folder_name}' owned by Service Account. This folder will not be able to contain files.")
     service = get_drive_service()
     file_metadata = {
         'name': folder_name,
@@ -62,5 +62,5 @@ def create_folder_with_service_account(folder_name):
         folder = service.files().create(body=file_metadata, fields='id').execute()
         return folder.get('id')
     except HttpError as error:
-        print(f"Lỗi khi tạo thư mục bằng tài khoản dịch vụ: {error}")
+        print(f"Error creating folder using service account: {error}")
         return None
