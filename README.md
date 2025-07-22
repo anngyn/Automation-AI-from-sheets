@@ -41,5 +41,42 @@ Hệ thống được xây dựng bằng Python, chia thành các module với c
 
 Sơ đồ dưới đây minh họa luồng dữ liệu và xử lý của hệ thống:
 
-![Alt text](./diagram.png)
-<img src ='./diagram.png', width = 400>
+<img src="diagram.png" width="500">
+
+## 4. Cách Chạy Chương Trình ▶️
+
+### 4.1 Cài đặt thư viện
+```
+pip install -r requirements.txt
+```
+
+### 4.2 Cấu hình biến môi trường
+
+```
+GOOGLE_SHEET_ID="ID_CUA_GOOGLE_SHEET_CUA_BAN"
+GOOGLE_DRIVE_FOLDER_ID="ID_CUA_FOLDER_DRIVE_MA_SA_SO_HUU_HOAC_DICH_VU_TAO"
+HUGGING_FACE_API_TOKEN="HF_TOKEN_CUA_BAN"
+GOOGLE_SERVICE_ACCOUNT_FILE_PATH="duong/dan/day/du/den/service_account.json"
+ADMIN_EMAIL="email_admin_nhan_thong_bao@example.com"
+SENDER_EMAIL="email_gui_thong_bao@example.com"
+SENDER_PASSWORD="MAT_KHAU_UNG_DUNG_CUA_EMAIL_GUI"
+SLACK_WEBHOOK_URL="URL_WEBHOOK_SLACK_CUA_BAN"
+```
+
+### 4.3 Chuẩn bị Google Sheet
+
+Tạo một Google Sheet với các cột sau 
+
+- **Description:** Mô tả tài sản AI cần tạo.
+
+- **Desired Output Format:** Định dạng đầu ra (PNG, JPG, MP3).
+
+- **Model Specification:** Ghi chú "Hugging Face" hoặc "Google Cloud TTS".
+
+### 4.4 Chạy chương trình
+
+Mở terminal/command prompt trong thư mục dự án và chạy:
+
+```
+python main_workflow.py
+```
